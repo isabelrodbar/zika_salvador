@@ -1,0 +1,292 @@
+---
+title: 'Figures for: Zika emergence in a dengue endemic region:Impact of preexisting
+  dengue immunity'
+author: "Rodriguez-Barraquer I, Costa F. et al."
+output:
+  html_document: default
+  html_notebook: default
+---
+
+This is file contains the code to reproduce the main figures in the paper.
+
+```{r housekeeping, include=F}
+library(ROCR)
+library(maptools) 
+library(raster)
+library(rworldmap)
+library(gstat)
+library(rgeos)
+library(PBSmapping)
+library(ggmap)
+library(mgcv)
+library(RColorBrewer)
+library(beeswarm)
+
+expit.fun<-function(x) {exp(x)/(1+exp(x))}
+
+```
+
+
+```{r load_data}
+#dataset
+load("~/Dropbox/Zika/Brazil/database_oct_2018_1453.Rdata")
+
+#shapefile
+read.map<-readShapeSpatial("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/Outline.shp")
+proj4string(read.map)<-CRS("+proj=utm +ellps=WGS84 +datum=WGS84 +zone=24N +units=m +no_defs +towgs84=0,0,0 +south")
+#elevation raster
+read.elev<-raster("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/elevation_topo.tif")
+
+
+cut1<-0.585592 #Cut-point determined using validation set
+db$pos_infect_38<-ifelse(db$avgzikvigg3_l38>cut1, 1, 0)
+
+```
+
+# Figure 1 (panel C)
+```{r figure 1c}
+
+mod1<-gam(pos_infect_38~s(lat, long, alt), family="binomial", data=db)
+
+## Generate grid to interpolate
+x.range <- range(extent(read.map)[1:2,])
+y.range <- range(extent(read.map)[3:4,])
+
+## now expand to a grid:
+grd <- expand.grid(x=seq(from=x.range[1], to=x.range[2], length.out=300), y=seq(from=y.range[1], to=y.range[2], length.out=300) )
+
+in.poly<-which(point.in.polygon(grd[,1], grd[,2], read.map@polygons[[1]]@Polygons[[1]]@coords[,1], read.map@polygons[[1]]@Polygons[[1]]@coords[,2])==0)
+
+## Extract parts of grid within polygon
+grd2<-grd[which(point.in.polygon(grd[,1], grd[,2], read.map@polygons[[1]]@Polygons[[1]]@coords[,1], read.map@polygons[[1]]@Polygons[[1]]@coords[,2])==1),]
+coordinates(grd2)<-~x+y
+
+#Get elevation for points in grid
+ext.vals<-extract(read.elev, grd2)
+
+#Generate prediction dataframe
+data.predict<-data.frame(lat=grd2$y, long=grd2$x, alt=ext.vals)
+
+pred.mod<-predict(mod1, newdata=data.predict)
+s1<-SpatialPixelsDataFrame(grd2, data =data.frame(expit.fun(pred.mod )))
+
+#define colors and breaks to plot
+breaks.plot<-seq(0, 1, length.out=30)
+cols.plot<-colorRampPalette(rev(brewer.pal(6, "RdYlBu")))
+
+## Define location and length of scale bar
+data.dist1<-matrix(c(-38.44-.0003, -38.437695-.0003, -12.930, -12.930), ncol=2)
+colnames(data.dist1)<-c("X","Y")
+attr(data.dist1,"projection")<-"LL"
+EN.dist1<-convUL(data.dist1)
+dist(EN.dist1)
+
+EN.dist2<-EN.dist1
+EN.dist2[,2]<-EN.dist1[,2]*1000+300
+
+
+##Plot map
+plot(s1, breaks=breaks.plot, col=cols.plot(length(breaks.plot)-1))
+lines(read.map, lty=1)
+#points(db$long, db$lat, col=adjustcolor("black", 1), pch=19, cex=.5)
+points(db$long[which(!is.na(db$pos_infect_38))], db$lat[which(!is.na(db$pos_infect_38))], col=adjustcolor("black", 1), pch=19, cex=.5)
+segments(x0=EN.dist2[1,1]*1000, x1=EN.dist2[2,1]*1000, y0=EN.dist2[1,2], y1=EN.dist2[2,2], lwd=2, col="black")
+text(x=sum(EN.dist2[,1]*1000/2), y=min(EN.dist2[,2])-30, labels="250m", col="black", cex=1.5, font=2)
+
+```
+
+# Figure 2 
+## Panel A
+```{r figure2a, fig.width=7.5, fig.height=6.4}
+db$dtcoleta_l40<-NA
+db$avgzikvigg3_l40<-NA
+db_plot<-data.frame(age=c(db$idade_l36, db$idade_l37, db$idade_l38, db$idade_l39, db$idade_l39), gender=c(db$sexo, db$sexo,  db$sexo,  db$sexo, db$sexo), igg3=c(db$avgzikvigg3_l36, db$avgzikvigg3_l37, db$avgzikvigg3_l38, db$avgzikvigg3_l39, db$avgzikvigg3_l40), coh_sample=c(rep(36, nrow(db)), rep(37, nrow(db)), rep(38, nrow(db)),  rep(39, nrow(db)), rep(40, nrow(db))), date=c(as.Date(db$dtcoleta_l36, "%m/%d/%y"), as.Date(db$dtcoleta_l37, "%m/%d/%y"), as.Date(db$dtcoleta_l38, "%m/%d/%y"), as.Date(db$dtcoleta_l39, "%m/%d/%y"), as.Date(db$dtcoleta_l40, "%m/%d/%y")), cohort=rep(db$cohort_d,5), prnt=c(rep(NA, nrow(db)), db$log10zikv_prnt37_50, db$log10zikv_prnt38_50, rep(NA, nrow(db)*2))) 
+
+
+  db_plot$titer_col<-ifelse(!is.na(db_plot$prnt) & db_plot$coh_sample==37, adjustcolor("orangered", alpha.f=0.6), ifelse(!is.na(db_plot$prnt) & db_plot$coh_sample==38, adjustcolor("seagreen4", alpha.f = .6), adjustcolor("grey50", alpha.f = .3)))
+  
+  #quartz(height=6.4, width=7.5)
+  beeswarm(log(igg3)~coh_sample, 
+                           data=db_plot, pch=19, cex=.4, pwcol=db_plot$titer_col, ylab="Log ZIKV IgG3", xlab="", xaxt="n", bty="n")
+  
+  abline(h=log(0.586), lty=2, col="royalblue")
+  axis(1, at=c(1, 2, 3, 4), labels=c("Oct 2014", "Mar 2015", "Oct 2015", "Mar 2016"))
+
+```
+
+## Panel B
+```{r figure2b, fig.height=5, fig.width=4}
+
+db_plot$prnt2<-db_plot$prnt
+db_plot$prnt2[which(db_plot$prnt==1)]<-jitter(db_plot$prnt2[which(db_plot$prnt==1)], amount=.1)
+
+plot(log(db_plot$igg3), db_plot$prnt2, col=db_plot$titer_col, pch=19, cex=.8, xlab="Log ZIKV IgG3", ylab="Log PRNT titer", bty="n", cex.axis=1.2, cex.lab=1.2)
+abline(h=2, lty=2,  col="royalblue")
+abline(v=log(0.58), lty=2,  col="royalblue")
+legend("bottomright", legend=c("March 2015", "Oct 2015"), pch=c(19, 19), col=c("orangered", "seagreen4"), bty="n")
+
+
+```
+
+## Panel C
+```{r figure2c, fig.height=5, fig.width=4}
+
+db_pred2<-data.frame(age=c( db$idade_l38), gender=c(db$sexo), igg3_ratio=c(db$avgzikvigg3_l38/db$avgzikvigg3_l37),igg3=c(db$avgzikvigg3_l38), igg3_37=c(db$avgzikvigg3_l37), prnt=c(db$log10zikv_prnt38_50), prnt_37=c(db$log10zikv_prnt37_50) , prnt_ratio=db$log10zikv_prnt38_50/db$log10zikv_prnt37_50, coh_sample=c( rep(38, nrow(db))), date=c(as.Date(db$dtcoleta_l38, "%m/%d/%y")), denv_tot=c(db$avgdenviggt_l38))
+
+## Cut-point for PRNT is 100
+db_pred2$pos_zikv<-ifelse(db_pred2$prnt>2, 1, 0)
+
+## Fit model using igg3 and prnt data from L38
+mod.1_2<-glm(pos_zikv~igg3, data=db_pred2, family="binomial", x=T)
+p0_2<-performance(prediction(predict(mod.1_2), labels = mod.1_2$y), measure = "tpr","fpr")
+
+plot(p0_2@x.values[[1]], p0_2@y.values[[1]],  cex.axis=1.2, cex.lab=1.2, ylab="Sens", xlab="1-Spec", bty="n", type="l")
+abline(v=p0_2@x.values[[1]][tail(which(p0_2@y.values[[1]]>.8 & p0_2@x.values[[1]]<0.05), 1)], lty=3, col="royalblue")
+abline(h=p0_2@y.values[[1]][tail(which(p0_2@y.values[[1]]>.8 & p0_2@x.values[[1]]<0.05), 1)], lty=3, col="royalblue")
+legend("bottomright", legend=c(paste("Igg3 cut-point:", round(cut1, 2), ", sens=", round(p0_2@y.values[[1]][tail(which(p0_2@y.values[[1]]>.8 & p0_2@x.values[[1]]<0.05), 1)], 2), ",spec=", 1-round(p0_2@x.values[[1]][tail(which(p0_2@y.values[[1]]>.8 & p0_2@x.values[[1]]<0.05), 1)],2), sep=" ")), col=c("royalblue"), lty=3, bty="n", cex=.6)
+
+```
+
+
+# Figure 3
+```{r figure3, fig.height=5, fig.width=5}
+
+# Define individuals who are DENV seropositive according to the titers
+db$denv_ns1_pos<-ifelse(db$denviggt_titers_l37_new> 1, 1, 0)
+
+db$cut_ages<-cut(db$idade_l37, c(0, 5, 8, 11, 15, 20, 35, 55, 90))
+mid.age<-c(0, 5, 8, 11, 15, 20, 35, 55, 90)[1:8]+diff(c(0, 5, 8, 11, 15, 20, 35, 55, 90))/2
+
+
+## Likelifood funtion for catalytic model with single time-point where lambda changes
+likeli.fun.2<-function(theta, data, k=NULL) {
+  
+  lambda<-exp(theta)
+  age<-as.numeric(dimnames(data)[[1]])
+  age1<-pmin(age, k)
+  age2<-pmax(0, age-k)
+  nyk<-data[,2]
+  nxk<-data[,1]
+  N<-apply(data, 1, sum)
+  
+  x<-exp(-4*(lambda[1]*age1+lambda[2]*age2))
+  
+  lognxk<-nxk*log(x)
+  lognyk<-(N-nxk)*log(1-x)
+  logterms<-lognxk+lognyk
+  #Sum the two log likelihoods
+  minuslogl<- -sum(logterms)
+  
+  return(minuslogl)
+  
+}
+
+tab.denv<-table(db$cut_ages[which(db$idade_l37<30)], db$denv_ns1_pos[which(db$idade_l37<30)])
+tab.denv<-table(db$cut_ages, db$denv_ns1_pos)
+dimnames(tab.denv)[[1]]<-mid.age
+
+#fit model. Knot determined using profile likelihood
+mod_denv_16<-optim(par=c(-2, -2), fn=likeli.fun.2, method="L-BFGS-B", data=tab.denv, hessian = T, k=16)
+
+#predict based on thie model
+age1<-pmin(1:75, 16)
+age2<-pmax(0, 1:75-16)
+x.pred.denv<-exp(-4*(exp(mod_denv_16$par[1])*age1+exp(mod_denv_16$par[2])*age2))
+
+# predition for Zika is mean seropositivity 
+pred.zika<-rep(0.6, 75)
+
+# tabulate to plot
+prop.zikv<-prop.table(table(db$cut_ages, db$pos_infect_38), 1)
+prop.denv<-prop.table(table(db$cut_ages, db$denv_ns1_pos), 1)
+tab.denv<-apply(table(db$cut_ages, db$denv_ns1_pos), 1, sum)
+tab.zikv<-apply(table(db$cut_ages, db$pos_infect_38), 1, sum)
+
+#### Plot FIGURE 3
+par(mfrow=c(1,2), mar=c(.5, .5, .5, .5), oma=c(4,4,1, 1))
+plot(mid.age, prop.zikv[,2], ylim=c(0, 1), pch=19, ylab="Proportion Seropositive", xlab="Age (years)")
+for(i in 1:length(mid.age)) {
+  segments(x0 = mid.age[i], y0 = prop.zikv[i,2]+1.96*sqrt(prop.zikv[i,2]*(1-prop.zikv[i,2])/tab.zikv[i]), y1 = prop.zikv[i,2]-1.96*sqrt(prop.zikv[i,2]*(1-prop.zikv[i,2])/tab.zikv[i]) , col="black")
+}
+lines(1:75, pred.zika, col="red", lwd=1.5)
+for(i in 1:length(mid.age)) {
+  
+}
+abline(h = c(.2, .4, .6, .8), col="grey60", lwd=.5, lty=2)
+abline(v = c(20, 40, 60, 80), col="grey60", lwd=.5, lty=2)
+
+plot(mid.age, prop.denv[,2], ylim=c(0, 1), pch=19, ylab="", xlab="Age (years)", yaxt="n")
+axis(2, labels = F, tick = T)
+for(i in 1:length(mid.age)) {
+  segments(x0 = mid.age[i], y0 = prop.denv[i,2]+1.96*sqrt(prop.denv[i,2]*(1-prop.denv[i,2])/tab.denv[i]), y1 = prop.denv[i,2]-1.96*sqrt(prop.denv[i,2]*(1-prop.denv[i,2])/tab.denv[i]) , col="black")
+}
+lines(1:75, 1-x.pred.denv, col="royalblue", lwd=1.5)
+abline(h = c(.2, .4, .6, .8), col="grey60", lwd=.5, lty=2)
+abline(v = c(20, 40, 60, 80), col="grey60", lwd=.5, lty=2)
+mtext(text = "Propotion Seropositive", side = 2, outer = T, line = 2)
+mtext(text = "Age (years)", side = 1, outer = T, line = 2)
+
+```
+
+
+# Figure 4
+```{r figure 4, fig.height=6, fig.width=6}
+db$ratio<-db$avgzikvigg3_l38/db$avgzikvigg3_l37
+
+g2_2_seroconv<-gam(pos_infect_38~s(idade_l38)+s(log(denviggt_titers_l37_new))+s(log(avgdenvigg3_l37)), data=db, family="binomial")
+
+g2_2_titer_base<-gam(log(ratio)~s(idade_l38)+s(log(denviggt_titers_l37_new))+s(log(avgdenvigg3_l37)), data=db)
+##Adjusting for baseline ZIKV titers
+#g2_2_titer_base_adj<-gam(log(ratio)~s(idade_l38)+s(log(denviggt_titers_l37_new))+s(log(avgzikvigg3_l37))+s(log(avgdenvigg3_l37)), data=db)
+
+
+## Create prediction datasets
+data.pred_age<-data.frame(idade_l38=seq(6, 77, length.out=40), denviggt_titers_l37_new=rep(exp(8.2), 40), avgzikvigg3_l37=rep(exp(-1.181), 40),  avgdenvigg3_l37=rep(exp(-.777), 40))
+
+data.pred_denv_igg3<-data.frame(idade_l38=rep(15, 40), denviggt_titers_l37_new=rep(exp(8.2), 40), avgzikvigg3_l37=rep(exp(-1.181), 40),  avgdenvigg3_l37=exp(seq(-1.7, 2.9, length.out=40)))
+
+data.pred_denv_iggt<-data.frame(idade_l38=rep(15, 40), denviggt_titers_l37_new=exp(seq(2.8, 13, length.out = 40)), avgzikvigg3_l37=rep(exp(-1.181), 40),  avgdenvigg3_l37=rep(exp(-0.7774), 40))
+
+
+## Predict
+pred.seroconv_age<-predict(g2_2_seroconv, newdata=data.pred_age, se.fit=T)
+pred.seroconv_igg3<-predict(g2_2_seroconv, newdata=data.pred_denv_igg3, se.fit=T)
+pred.seroconv_iggt<-predict(g2_2_seroconv, newdata=data.pred_denv_iggt, se.fit=T)
+
+pred.ratio_age<-predict(g2_2_titer_base, newdata=data.pred_age, se.fit=T)
+pred.ratio_igg3<-predict(g2_2_titer_base, newdata=data.pred_denv_igg3, se.fit=T)
+pred.ratio_iggt<-predict(g2_2_titer_base, newdata=data.pred_denv_iggt, se.fit=T)
+
+
+#### Plot FIGURE 4
+par(mfrow=c(2, 3), mar=c(2, .5, .5, .5), oma=c(4, 4, 1, 1))
+plot(seq(6, 77, length.out=40), expit.fun(pred.seroconv_age[[1]]), type="l", ylim=c(0.2,1), xlim=c(5,60), xlab="", ylab="Prob. Zika Positive", cex.lab=1.5)
+polygon(c(seq(6, 77, length.out=40), rev(seq(6, 77, length.out=40))), expit.fun(c((pred.seroconv_age[[1]]+1.96*pred.seroconv_age[[2]]), rev(pred.seroconv_age[[1]]-1.96*pred.seroconv_age[[2]]))), col=adjustcolor("orangered", .5), border=NA)
+mtext("Prob. ZIKV Positive", 2, outer = F, line=3)
+plot(seq(2.8, 13, length.out = 40), expit.fun(pred.seroconv_iggt[[1]]), type="l", ylim=c(0.2,1), xlab="", yaxt="n", ylab="", cex.lab=1.5)
+polygon(c(seq(2.8, 13, length.out = 40), rev(seq(2.8, 13, length.out = 40))), expit.fun(c((pred.seroconv_iggt[[1]]+1.96*pred.seroconv_iggt[[2]]), rev(pred.seroconv_iggt[[1]]-1.96*pred.seroconv_iggt[[2]]))), col=adjustcolor("royalblue", .5), border=NA)
+
+plot(seq(-1.7, 2.9, length.out=40), expit.fun(pred.seroconv_igg3[[1]]), type="l", ylim=c(0.2,1), xlab="", yaxt="n", ylab="", cex.lab=1.5)
+polygon(c(seq(-1.7, 2.9, length.out=40), rev(seq(-1.7, 2.9, length.out=40))), expit.fun(c((pred.seroconv_igg3[[1]]+1.96*pred.seroconv_igg3[[2]]), rev(pred.seroconv_igg3[[1]]-1.96*pred.seroconv_igg3[[2]]))), col=adjustcolor("forestgreen", .5), border=NA)
+
+#par(mfrow=c(1,3))
+plot(seq(6, 77, length.out=40), exp(pred.ratio_age[[1]]), type="l", ylim=c(1,6), xlim=c(5,60), xlab="", ylab="Ratio ZIKV IgG3", cex.lab=1.5)
+polygon(c(seq(6, 77, length.out=40), rev(seq(6, 77, length.out=40))), exp(c((pred.ratio_age[[1]]+1.96*pred.ratio_age[[2]]), rev(pred.ratio_age[[1]]-1.96*pred.ratio_age[[2]]))), col=adjustcolor("orangered", .5), border=NA)
+mtext("Ratio ZIKV IgG3", 2, outer = F, line=3)
+mtext("Age (years)", 1, outer = F, line=3)
+
+plot(seq(2.8, 13, length.out = 40), exp(pred.ratio_iggt[[1]]), type="l", ylim=c(1,6), xlab="", yaxt="n", ylab="", cex.lab=1.5)
+polygon(c(seq(2.8, 13, length.out = 40), rev(seq(2.8, 13, length.out = 40))), exp(c((pred.ratio_iggt[[1]]+1.96*pred.ratio_iggt[[2]]), rev(pred.ratio_iggt[[1]]-1.96*pred.ratio_iggt[[2]]))), col=adjustcolor("royalblue", .5), border=NA)
+mtext("Log DENV NS1 IgG Titer", 1, outer = F, line=3)
+
+plot(seq(-1.7, 2.9, length.out=40), exp(pred.ratio_igg3[[1]]), type="l", ylim=c(1,6), xlab="", yaxt="n", ylab="", cex.lab=1.5)
+polygon(c(seq(-1.7, 2.9, length.out=40), rev(seq(-1.7, 2.9, length.out=40))), exp(c((pred.ratio_igg3[[1]]+1.96*pred.ratio_igg3[[2]]), rev(pred.ratio_igg3[[1]]-1.96*pred.ratio_igg3[[2]]))), col=adjustcolor("forestgreen", .5), border=NA)
+mtext("Log DENV IgG3", 1, outer = F, line=3)
+
+```
+
+
+
+
+
+
