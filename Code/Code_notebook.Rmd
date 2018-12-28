@@ -1,0 +1,199 @@
+---
+title: 'Code for: Impact of preexisting dengue immunity on Zika virus emergence in a dengue endemic region'
+author: "Rodriguez-Barraquer I, Costa F. et al."
+output:
+  html_document: default
+  html_notebook: default
+---
+
+This is file contains the code to reproduce the results in the main paper.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+expit.fun<-function(x) {exp(x)/(1+exp(x))}
+```
+
+```{r load_data}
+#dataset
+load("~/Dropbox/Zika/Brazil/database_oct_2018_1453.Rdata")
+cut1<-0.585592 #Cut-point determined using validation set
+db$pos_infect_38<-ifelse(db$avgzikvigg3_l38>cut1, 1, 0)
+db$coh_642<-ifelse(!is.na(db$denviggt_titers_l37_new), 1, 0)
+```
+
+## Estimate proportion seropositive prior to the ZIKV outbreak
+Samples belong to three different collection periods
+-L36 October 2014
+-L37 March 2015
+-L38 October 2015
+
+### By IgG3
+```{r seropos_pre_igg3_l36}
+db$pos_infect_36<-ifelse(db$avgzikvigg3_l36>=cut1, 1, 0)
+#prop.table(table(db$pos_infect_36))
+
+n.boot<-1000 #Number of bootstrap iterations for confidence intervals
+n.pos<-c()
+
+for(i in 1:n.boot){
+  samp.i<-sample(db$pos_infect_36, size = 1453, replace = TRUE)
+  n.pos[i]<-sum(samp.i, na.rm=T)
+}
+#quantile(n.pos, c(.025, .975))/length(which(!is.na(db$pos_infect_36)))
+#length(which(!is.na(db$pos_infect_36)))
+```
+Number of anti-ZIKV NS1 IgG3 positive samples in October 2014: `r length(which(db$pos_infect_36==1))`/`r length(which(!is.na(db$pos_infect_36)))`, `r paste(round(prop.table(table(db$pos_infect_36))[2],2), " (95%CI ", paste(round(quantile(n.pos, c(.025, .975))/length(which(!is.na(db$pos_infect_36))), 2), collapse="-"), ")", sep="" )`
+
+
+```{r seropos_pre_igg3_l37}
+db$pos_infect_37<-ifelse(db$avgzikvigg3_l37>=cut1, 1, 0)
+#prop.table(table(db$pos_infect_37))
+for(i in 1:n.boot){
+  samp.i<-sample(db$pos_infect_37, size = 1453, replace = TRUE)
+  n.pos[i]<-sum(samp.i, na.rm=T)
+}
+#quantile(n.pos, c(.025, .975))/length(which(!is.na(db$pos_infect_37)))
+#length(which(!is.na(db$pos_infect_37)))
+```
+Number of anti-ZIKV NS1 IgG3 positive samples in March 2014: `r length(which(db$pos_infect_37==1))`/`r length(which(!is.na(db$pos_infect_37)))`, `r paste(round(prop.table(table(db$pos_infect_37))[2],2), " (95%CI ", paste(round(quantile(n.pos, c(.025, .975))/length(which(!is.na(db$pos_infect_37))), 2), collapse="-"), ")", sep="" )`
+
+
+### By PRNT
+```{r seropos_pre_prnt}
+### Same but by PRNT
+db$prnt_37<-ifelse(db$log10zikv_prnt37_50> 2, 1, 0)
+#prop.table(table(db$prnt_37))
+for(i in 1:n.boot){
+  samp.i<-sample(db$prnt_37, size = 1453, replace = TRUE)
+  n.pos[i]<-sum(samp.i, na.rm=T)
+}
+#quantile(n.pos, c(.025, .975))/length(which(!is.na(db$pos_infect_37)))
+#length(which(!is.na(db$prnt_37)))
+```
+Number of ZIKV PRNT positive samples in March 2014: `r length(which(db$prnt_37==1))`/`r length(which(!is.na(db$prnt_37)))`, `r paste(round(prop.table(table(db$prnt_37))[2],2), " (95%CI ", paste(round(quantile(n.pos, c(.025, .975))/length(which(!is.na(db$prnt_37))), 2), collapse="-"), ")", sep="" )`
+
+
+## Estimate attack rates of ZIKV outbreak
+
+```{r attack_rates_igg3}
+
+
+### Formula to adjust seropositivity based on known sensitivity and specificity
+form.correct<-function(sp, se, pos, neg) {((sp*pos-(1-sp)*neg)/(se*sp-(1-se)*(1-sp)))}
+
+adj.rate<-form.correct(sp =0.9722222, se = 0.85245902, pos =table(db$pos_infect_38)[2], neg = table(db$pos_infect_38)[1]) 
+
+# Bootstrap to obtain confidence bounds
+
+n.boot<-1000
+n.pos<-c()
+
+for(i in 1:n.boot){
+  samp.i<-sample(db$pos_infect_38[which(!is.na(db$pos_infect_38))], size = 1453, replace = TRUE)
+  n.pos[i]<-sum(samp.i)
+}
+
+adj.rate<-form.correct(sp =0.9722222, se = 0.85245902, pos =n.pos, neg = 1453-n.pos )/1453
+#quantile(adj.rate, c(.025, .975))
+```
+Number of anti-ZIKV NS1 IgG3 positive samples in October 2015: `r length(which(db$pos_infect_38==1))`/`r length(which(!is.na(db$pos_infect_38)))`, `r paste(round(prop.table(table(db$pos_infect_38))[2],2), " (95%CI ", paste(round(quantile(n.pos, c(.025, .975))/length(which(!is.na(db$pos_infect_38))), 2), collapse="-"), ")", sep="" )`
+
+Attack rate adjusted for sensitivity and specificity: `r paste(round(mean(adj.rate), 2), " (95%CI ", paste(round(quantile(adj.rate, c(.025, .975)), 2), collapse="-"), ")", sep="") `
+
+### Look at spatial heterogeneity in attack rates
+
+## Look at associations between prior immunity to DENV and ZIKV seropositivity
+These analyses are performed on subset of 642 with data on DENV titers prior to Zika outbreak (variable coh642=1)
+
+### Association among individuals with prior immunity to DENV
+```{r associations_DENV_infect}
+mod.all_pos<-glm(pos_igg3~log(avgdenvigg3_l37, 2)+idade_l38+log(denviggt_titers_l37_new, 2), data=db[which(db$denviggt_titers_l37_new>50),], family="binomial")
+summary(mod.all_pos)
+
+1-exp(coef(mod.all_pos))
+1-exp(coef(mod.all_pos)+ 1.96*summary(mod.all_pos)$coefficients[,2] )
+1-exp(coef(mod.all_pos)- 1.96*summary(mod.all_pos)$coefficients[,2] )
+
+```
+
+
+### Association between ZIKV infection and tertiles of DENV titers
+```{r associations_DENV_infect_tertiles}
+db$cut_denv_iggt_new<-cut(db$denviggt_titers_l37_new, quantile(db$denviggt_titers_l37_new, c(0, 1/3, 2/3, 3/3), na.rm=T), include.lowest = T)
+### Alternative, comparing to now titers -
+#db$cut_denv_iggt_new<-cut(db$denviggt_titers_l37_new, c(0, 51, quant.denv), include.lowest = T)
+table(db$cut_denv_iggt_new, useNA = 'always')
+
+mod.all_quants<-glm(pos_igg3~log(avgdenvigg3_l37, 2)+idade_l38+cut_denv_iggt_new, data=db, family="binomial")
+summary(mod.all_quants)
+1-exp(coef(mod.all_quants))
+1-exp(coef(mod.all_quants)+ 1.96*summary(mod.all_quants)$coefficients[,2] )
+1-exp(coef(mod.all_quants)- 1.96*summary(mod.all_quants)$coefficients[,2] )
+dim(mod.all_quants$model)
+```
+
+## Look at associations between prior immunity to DENV and ZIKV symptoms
+
+### First look at proportion of individuals who presented symptoms and association between symptoms and infection
+
+```{r symptoms, echo=TRUE}
+###### Symptoms
+table(db$rash_l38[which(db$coh_642==1)])
+prop.table(table(db$rash_l38[which(db$coh_642==1)]))
+table(db$febre_l38[which(db$coh_642==1)])
+prop.table(  table(db$febre_l38[which(db$coh_642==1)]))
+table(db$rash_l38[which(db$coh_642==1)], db$febre_l38[which(db$coh_642==1)])
+prop.table(table(db$rash_l38[which(db$coh_642==1)], db$febre_l38[which(db$coh_642==1)]))
+
+db$symp<-ifelse(db$rash_l38==1 | db$febre_l38==1, 1, 0)
+db$symp2<-ifelse(db$rash_l38==1 & db$febre_l38==1, 1, 0)
+table(db$symp, db$pos_infect_38)
+prop.table(table(db$symp, db$pos_infect_38), 2)
+
+db$symp<-ifelse(db$rash_l38==1 | db$febre_l38==1, 1, 0)
+db$symp2<-ifelse(db$rash_l38==1 & db$febre_l38==1, 1, 0)
+table(db$symp, db$pos_infect_38)
+prop.table(table(db$symp, db$pos_infect_38), 2)
+
+db$rash2<-ifelse(db$rash_l38==1, 1, 0)
+
+## Association between infection and rash
+m.rash<-glm(pos_infect_38~rash2, family="binomial", data=db[which(db$coh_642==1),])
+exp(coef(m.rash))
+exp(coef(m.rash)+ 1.96*summary(m.rash)$coefficients[,2] )
+exp(coef(m.rash)- 1.96*summary(m.rash)$coefficients[,2] )
+
+## Association between infection and fever
+m.fev<-glm(pos_infect_38~febre_l38, family="binomial", data=db[which(db$coh_642==1),])
+exp(coef(m.fev))
+exp(coef(m.fev)+ 1.96*summary(m.fev)$coefficients[,2] )
+exp(coef(m.fev)- 1.96*summary(m.fev)$coefficients[,2] )
+
+## Association between infection and both symptoms
+m.symp<-glm(pos_infect_38~symp2, family="binomial", data=db[which(db$coh_642==1),])
+exp(coef(m.symp))
+exp(coef(m.symp)+ 1.96*summary(m.symp)$coefficients[,2] )
+exp(coef(m.symp)- 1.96*summary(m.symp)$coefficients[,2] )
+
+```
+
+### Now look at association between DENV titers and symptoms among individuals who were infected
+
+#### Fever
+```{r Fever_DENV, echo=FALSE}
+m.denv_febre<-glm(febre_l38~cut_denv_iggt_new+log(avgdenvigg3_l37,2)+idade_l38, family="binomial", data=db[which(db$coh_642==1 & db$pos_infect_38==1),])
+summary(m.denv_febre)
+
+```
+
+#### Rash
+```{r rash_DENV, echo=FALSE}
+m.denv_rash<-glm(rash2~cut_denv_iggt_new+log(avgdenvigg3_l37, 2)+idade_l38, family="binomial", data=db[which(db$coh_642==1 & db$pos_infect_38==1),])
+
+
+summary(m.denv_rash)
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
