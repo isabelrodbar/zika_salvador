@@ -29,7 +29,7 @@ expit.fun<-function(x) {exp(x)/(1+exp(x))}
 ```{r load_data}
 #dataset
 #load("~/Dropbox/Zika/Brazil/database_oct_2018_1453.Rdata")
-db<-readRDS("~/Dropbox/Zika/Brazil/GitHub/Data/dat_Zika_salvador.RDS")
+db<-readRDS("Data/dat_Zika_salvador.RDS")
 
 #shapefile
 #read.map<-readShapeSpatial("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/Outline.shp")
