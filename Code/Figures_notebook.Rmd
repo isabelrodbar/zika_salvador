@@ -100,7 +100,7 @@ Spatial data not provided due to privacy concerns
 ```{r figure2a, fig.width=7.5, fig.height=6.4}
 db$dtcoleta_l40<-NA
 db$avgzikvigg3_l40<-NA
-db_plot<-data.frame(age=c(db$idade_l36, db$idade_l37, db$idade_l38, db$idade_l39, db$idade_l39), gender=c(db$sexo, db$sexo,  db$sexo,  db$sexo, db$sexo), igg3=c(db$avgzikvigg3_l36, db$avgzikvigg3_l37, db$avgzikvigg3_l38, db$avgzikvigg3_l39, db$avgzikvigg3_l40), coh_sample=c(rep(36, nrow(db)), rep(37, nrow(db)), rep(38, nrow(db)),  rep(39, nrow(db)), rep(40, nrow(db))), date=c(as.Date(db$dtcoleta_l36, "%m/%d/%y"), as.Date(db$dtcoleta_l37, "%m/%d/%y"), as.Date(db$dtcoleta_l38, "%m/%d/%y"), as.Date(db$dtcoleta_l39, "%m/%d/%y"), as.Date(db$dtcoleta_l40, "%m/%d/%y")), prnt=c(rep(NA, nrow(db)), db$log10zikv_prnt37_50, db$log10zikv_prnt38_50, rep(NA, nrow(db)*2))) 
+db_plot<-data.frame(age=c(db$idade_l36, db$idade_l37, db$idade_l38, db$idade_l39, db$idade_l39),  igg3=c(db$avgzikvigg3_l36, db$avgzikvigg3_l37, db$avgzikvigg3_l38, db$avgzikvigg3_l39, db$avgzikvigg3_l40), coh_sample=c(rep(36, nrow(db)), rep(37, nrow(db)), rep(38, nrow(db)),  rep(39, nrow(db)), rep(40, nrow(db))), date=c(as.Date(db$dtcoleta_l36, "%m/%d/%y"), as.Date(db$dtcoleta_l37, "%m/%d/%y"), as.Date(db$dtcoleta_l38, "%m/%d/%y"), as.Date(db$dtcoleta_l39, "%m/%d/%y"), as.Date(db$dtcoleta_l40, "%m/%d/%y")), prnt=c(rep(NA, nrow(db)), db$log10zikv_prnt37_50, db$log10zikv_prnt38_50, rep(NA, nrow(db)*2))) 
 
 
   db_plot$titer_col<-ifelse(!is.na(db_plot$prnt) & db_plot$coh_sample==37, adjustcolor("orangered", alpha.f=0.6), ifelse(!is.na(db_plot$prnt) & db_plot$coh_sample==38, adjustcolor("seagreen4", alpha.f = .6), adjustcolor("grey50", alpha.f = .3)))
@@ -131,7 +131,7 @@ legend("bottomright", legend=c("March 2015", "Oct 2015"), pch=c(19, 19), col=c("
 ## Panel C
 ```{r figure2c, fig.height=5, fig.width=4}
 
-db_pred2<-data.frame(age=c( db$idade_l38), gender=c(db$sexo), igg3_ratio=c(db$avgzikvigg3_l38/db$avgzikvigg3_l37),igg3=c(db$avgzikvigg3_l38), igg3_37=c(db$avgzikvigg3_l37), prnt=c(db$log10zikv_prnt38_50), prnt_37=c(db$log10zikv_prnt37_50) , prnt_ratio=db$log10zikv_prnt38_50/db$log10zikv_prnt37_50, coh_sample=c( rep(38, nrow(db))), date=c(as.Date(db$dtcoleta_l38, "%m/%d/%y")))
+db_pred2<-data.frame(age=c( db$idade_l38), igg3_ratio=c(db$avgzikvigg3_l38/db$avgzikvigg3_l37),igg3=c(db$avgzikvigg3_l38), igg3_37=c(db$avgzikvigg3_l37), prnt=c(db$log10zikv_prnt38_50), prnt_37=c(db$log10zikv_prnt37_50) , prnt_ratio=db$log10zikv_prnt38_50/db$log10zikv_prnt37_50, coh_sample=c( rep(38, nrow(db))), date=c(as.Date(db$dtcoleta_l38, "%m/%d/%y")))
 
 ## Cut-point for PRNT is 100
 db_pred2$pos_zikv<-ifelse(db_pred2$prnt>2, 1, 0)

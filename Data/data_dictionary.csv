@@ -1,0 +1,23 @@
+Variable,Description
+dtcoleta_l36,date of sample collection during survey l36*
+dtcoleta_l37,date of sample collection during survey l37
+dtcoleta_l38,date of sample collection during survey l38
+dtcoleta_l39,date of sample collection during survey l39
+idade_l36,age at time of sample collection in l36
+idade_l37,age at time of sample collection in l37
+idade_l38,age at time of sample collection in l38
+idade_l39,age at time of sample collection in l39
+avgzikvigg3_l36,OD of  anti-ZIKV NS1 IgG3 measured at l36
+avgzikvigg3_l37,OD of  anti-ZIKV NS1 IgG3 measured at l37
+avgzikvigg3_l38,OD of  anti-ZIKV NS1 IgG3 measured at l38
+avgzikvigg3_l39,OD of  anti-ZIKV NS1 IgG3 measured at l39
+avgdenvigg3_l37,OD of anti_DENV NS1 IgG3 measured at l37
+denviggt_titers_l37_new,IgG total titers against  NS1 measured at l37
+log10zikv_prnt37_50,Log10 ZIKV PRNT 50 titer measured at l37
+log10zikv_prnt38_50,Log10 ZIKV PRNT 50 titer measured at l38
+coh_642,Variable indicating whether individual is member of random subcohort used for analyses of associations between DENV immunity and ZIKV risk
+rash_l38,Self-reported rash between l37 and l38
+febre_l38,Self-reported fever between l37 and l38
+,
+,
+"*Samples for these analyses were obtained during four surveys (l36, l37, l38, l39) conducted between 2014 and 2016",
