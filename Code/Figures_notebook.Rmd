@@ -6,7 +6,7 @@ output:
   html_notebook: default
 ---
 
-This is file contains the code to reproduce the main figures in the paper.
+This is file contains the code to reproduce the main figures in the paper "Impact of preexisting dengue immunity on Zika virus emergence in a dengue endemic region".
 
 ```{r housekeeping, include=F}
 library(ROCR)
