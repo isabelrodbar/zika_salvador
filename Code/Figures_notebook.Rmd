@@ -1,6 +1,5 @@
 ---
-title: 'Figures for: Zika emergence in a dengue endemic region:Impact of preexisting
-  dengue immunity'
+title: 'Figures for: Impact of preexisting dengue immunity on Zika virus emergence in a dengue endemic region'
 author: "Rodriguez-Barraquer I, Costa F. et al."
 output:
   html_document: default
@@ -29,13 +28,14 @@ expit.fun<-function(x) {exp(x)/(1+exp(x))}
 
 ```{r load_data}
 #dataset
-load("~/Dropbox/Zika/Brazil/database_oct_2018_1453.Rdata")
+#load("~/Dropbox/Zika/Brazil/database_oct_2018_1453.Rdata")
+db<-readRDS("~/Dropbox/Zika/Brazil/GitHub/Data/dat_Zika_salvador.RDS")
 
 #shapefile
-read.map<-readShapeSpatial("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/Outline.shp")
-proj4string(read.map)<-CRS("+proj=utm +ellps=WGS84 +datum=WGS84 +zone=24N +units=m +no_defs +towgs84=0,0,0 +south")
+#read.map<-readShapeSpatial("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/Outline.shp")
+#proj4string(read.map)<-CRS("+proj=utm +ellps=WGS84 +datum=WGS84 +zone=24N +units=m +no_defs +towgs84=0,0,0 +south")
 #elevation raster
-read.elev<-raster("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/elevation_topo.tif")
+#read.elev<-raster("~/Dropbox/Zika/Brazil/zika_L38/geodata_L38/elevation_topo.tif")
 
 
 cut1<-0.585592 #Cut-point determined using validation set
@@ -44,54 +44,54 @@ db$pos_infect_38<-ifelse(db$avgzikvigg3_l38>cut1, 1, 0)
 ```
 
 # Figure 1 (panel C)
+Spatial data not provided due to privacy concerns
 ```{r figure 1c}
-
-mod1<-gam(pos_infect_38~s(lat, long, alt), family="binomial", data=db)
-
-## Generate grid to interpolate
-x.range <- range(extent(read.map)[1:2,])
-y.range <- range(extent(read.map)[3:4,])
-
-## now expand to a grid:
-grd <- expand.grid(x=seq(from=x.range[1], to=x.range[2], length.out=300), y=seq(from=y.range[1], to=y.range[2], length.out=300) )
-
-in.poly<-which(point.in.polygon(grd[,1], grd[,2], read.map@polygons[[1]]@Polygons[[1]]@coords[,1], read.map@polygons[[1]]@Polygons[[1]]@coords[,2])==0)
-
-## Extract parts of grid within polygon
-grd2<-grd[which(point.in.polygon(grd[,1], grd[,2], read.map@polygons[[1]]@Polygons[[1]]@coords[,1], read.map@polygons[[1]]@Polygons[[1]]@coords[,2])==1),]
-coordinates(grd2)<-~x+y
-
-#Get elevation for points in grid
-ext.vals<-extract(read.elev, grd2)
-
-#Generate prediction dataframe
-data.predict<-data.frame(lat=grd2$y, long=grd2$x, alt=ext.vals)
-
-pred.mod<-predict(mod1, newdata=data.predict)
-s1<-SpatialPixelsDataFrame(grd2, data =data.frame(expit.fun(pred.mod )))
-
-#define colors and breaks to plot
-breaks.plot<-seq(0, 1, length.out=30)
-cols.plot<-colorRampPalette(rev(brewer.pal(6, "RdYlBu")))
-
-## Define location and length of scale bar
-data.dist1<-matrix(c(-38.44-.0003, -38.437695-.0003, -12.930, -12.930), ncol=2)
-colnames(data.dist1)<-c("X","Y")
-attr(data.dist1,"projection")<-"LL"
-EN.dist1<-convUL(data.dist1)
-dist(EN.dist1)
-
-EN.dist2<-EN.dist1
-EN.dist2[,2]<-EN.dist1[,2]*1000+300
-
-
-##Plot map
-plot(s1, breaks=breaks.plot, col=cols.plot(length(breaks.plot)-1))
-lines(read.map, lty=1)
-#points(db$long, db$lat, col=adjustcolor("black", 1), pch=19, cex=.5)
-points(db$long[which(!is.na(db$pos_infect_38))], db$lat[which(!is.na(db$pos_infect_38))], col=adjustcolor("black", 1), pch=19, cex=.5)
-segments(x0=EN.dist2[1,1]*1000, x1=EN.dist2[2,1]*1000, y0=EN.dist2[1,2], y1=EN.dist2[2,2], lwd=2, col="black")
-text(x=sum(EN.dist2[,1]*1000/2), y=min(EN.dist2[,2])-30, labels="250m", col="black", cex=1.5, font=2)
+# mod1<-gam(pos_infect_38~s(lat, long, alt), family="binomial", data=db)
+# 
+# ## Generate grid to interpolate
+# x.range <- range(extent(read.map)[1:2,])
+# y.range <- range(extent(read.map)[3:4,])
+# 
+# ## now expand to a grid:
+# grd <- expand.grid(x=seq(from=x.range[1], to=x.range[2], length.out=300), y=seq(from=y.range[1], to=y.range[2], length.out=300) )
+# 
+# in.poly<-which(point.in.polygon(grd[,1], grd[,2], read.map@polygons[[1]]@Polygons[[1]]@coords[,1], read.map@polygons[[1]]@Polygons[[1]]@coords[,2])==0)
+# 
+# ## Extract parts of grid within polygon
+# grd2<-grd[which(point.in.polygon(grd[,1], grd[,2], read.map@polygons[[1]]@Polygons[[1]]@coords[,1], read.map@polygons[[1]]@Polygons[[1]]@coords[,2])==1),]
+# coordinates(grd2)<-~x+y
+# 
+# #Get elevation for points in grid
+# ext.vals<-extract(read.elev, grd2)
+# 
+# #Generate prediction dataframe
+# data.predict<-data.frame(lat=grd2$y, long=grd2$x, alt=ext.vals)
+# 
+# pred.mod<-predict(mod1, newdata=data.predict)
+# s1<-SpatialPixelsDataFrame(grd2, data =data.frame(expit.fun(pred.mod )))
+# 
+# #define colors and breaks to plot
+# breaks.plot<-seq(0, 1, length.out=30)
+# cols.plot<-colorRampPalette(rev(brewer.pal(6, "RdYlBu")))
+# 
+# ## Define location and length of scale bar
+# data.dist1<-matrix(c(-38.44-.0003, -38.437695-.0003, -12.930, -12.930), ncol=2)
+# colnames(data.dist1)<-c("X","Y")
+# attr(data.dist1,"projection")<-"LL"
+# EN.dist1<-convUL(data.dist1)
+# dist(EN.dist1)
+# 
+# EN.dist2<-EN.dist1
+# EN.dist2[,2]<-EN.dist1[,2]*1000+300
+# 
+# 
+# ##Plot map
+# plot(s1, breaks=breaks.plot, col=cols.plot(length(breaks.plot)-1))
+# lines(read.map, lty=1)
+# #points(db$long, db$lat, col=adjustcolor("black", 1), pch=19, cex=.5)
+# points(db$long[which(!is.na(db$pos_infect_38))], db$lat[which(!is.na(db$pos_infect_38))], col=adjustcolor("black", 1), pch=19, cex=.5)
+# segments(x0=EN.dist2[1,1]*1000, x1=EN.dist2[2,1]*1000, y0=EN.dist2[1,2], y1=EN.dist2[2,2], lwd=2, col="black")
+# text(x=sum(EN.dist2[,1]*1000/2), y=min(EN.dist2[,2])-30, labels="250m", col="black", cex=1.5, font=2)
 
 ```
 
@@ -100,7 +100,7 @@ text(x=sum(EN.dist2[,1]*1000/2), y=min(EN.dist2[,2])-30, labels="250m", col="bla
 ```{r figure2a, fig.width=7.5, fig.height=6.4}
 db$dtcoleta_l40<-NA
 db$avgzikvigg3_l40<-NA
-db_plot<-data.frame(age=c(db$idade_l36, db$idade_l37, db$idade_l38, db$idade_l39, db$idade_l39), gender=c(db$sexo, db$sexo,  db$sexo,  db$sexo, db$sexo), igg3=c(db$avgzikvigg3_l36, db$avgzikvigg3_l37, db$avgzikvigg3_l38, db$avgzikvigg3_l39, db$avgzikvigg3_l40), coh_sample=c(rep(36, nrow(db)), rep(37, nrow(db)), rep(38, nrow(db)),  rep(39, nrow(db)), rep(40, nrow(db))), date=c(as.Date(db$dtcoleta_l36, "%m/%d/%y"), as.Date(db$dtcoleta_l37, "%m/%d/%y"), as.Date(db$dtcoleta_l38, "%m/%d/%y"), as.Date(db$dtcoleta_l39, "%m/%d/%y"), as.Date(db$dtcoleta_l40, "%m/%d/%y")), cohort=rep(db$cohort_d,5), prnt=c(rep(NA, nrow(db)), db$log10zikv_prnt37_50, db$log10zikv_prnt38_50, rep(NA, nrow(db)*2))) 
+db_plot<-data.frame(age=c(db$idade_l36, db$idade_l37, db$idade_l38, db$idade_l39, db$idade_l39), gender=c(db$sexo, db$sexo,  db$sexo,  db$sexo, db$sexo), igg3=c(db$avgzikvigg3_l36, db$avgzikvigg3_l37, db$avgzikvigg3_l38, db$avgzikvigg3_l39, db$avgzikvigg3_l40), coh_sample=c(rep(36, nrow(db)), rep(37, nrow(db)), rep(38, nrow(db)),  rep(39, nrow(db)), rep(40, nrow(db))), date=c(as.Date(db$dtcoleta_l36, "%m/%d/%y"), as.Date(db$dtcoleta_l37, "%m/%d/%y"), as.Date(db$dtcoleta_l38, "%m/%d/%y"), as.Date(db$dtcoleta_l39, "%m/%d/%y"), as.Date(db$dtcoleta_l40, "%m/%d/%y")), prnt=c(rep(NA, nrow(db)), db$log10zikv_prnt37_50, db$log10zikv_prnt38_50, rep(NA, nrow(db)*2))) 
 
 
   db_plot$titer_col<-ifelse(!is.na(db_plot$prnt) & db_plot$coh_sample==37, adjustcolor("orangered", alpha.f=0.6), ifelse(!is.na(db_plot$prnt) & db_plot$coh_sample==38, adjustcolor("seagreen4", alpha.f = .6), adjustcolor("grey50", alpha.f = .3)))
@@ -131,7 +131,7 @@ legend("bottomright", legend=c("March 2015", "Oct 2015"), pch=c(19, 19), col=c("
 ## Panel C
 ```{r figure2c, fig.height=5, fig.width=4}
 
-db_pred2<-data.frame(age=c( db$idade_l38), gender=c(db$sexo), igg3_ratio=c(db$avgzikvigg3_l38/db$avgzikvigg3_l37),igg3=c(db$avgzikvigg3_l38), igg3_37=c(db$avgzikvigg3_l37), prnt=c(db$log10zikv_prnt38_50), prnt_37=c(db$log10zikv_prnt37_50) , prnt_ratio=db$log10zikv_prnt38_50/db$log10zikv_prnt37_50, coh_sample=c( rep(38, nrow(db))), date=c(as.Date(db$dtcoleta_l38, "%m/%d/%y")), denv_tot=c(db$avgdenviggt_l38))
+db_pred2<-data.frame(age=c( db$idade_l38), gender=c(db$sexo), igg3_ratio=c(db$avgzikvigg3_l38/db$avgzikvigg3_l37),igg3=c(db$avgzikvigg3_l38), igg3_37=c(db$avgzikvigg3_l37), prnt=c(db$log10zikv_prnt38_50), prnt_37=c(db$log10zikv_prnt37_50) , prnt_ratio=db$log10zikv_prnt38_50/db$log10zikv_prnt37_50, coh_sample=c( rep(38, nrow(db))), date=c(as.Date(db$dtcoleta_l38, "%m/%d/%y")))
 
 ## Cut-point for PRNT is 100
 db_pred2$pos_zikv<-ifelse(db_pred2$prnt>2, 1, 0)

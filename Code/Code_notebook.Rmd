@@ -6,7 +6,7 @@ output:
   html_notebook: default
 ---
 
-This is file contains the code to reproduce the results in the main paper.
+This is file contains the code to reproduce the main results in the paper.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,9 +15,9 @@ expit.fun<-function(x) {exp(x)/(1+exp(x))}
 
 ```{r load_data}
 #dataset
-load("~/Dropbox/Zika/Brazil/database_oct_2018_1453.Rdata")
+db<-readRDS("~/Dropbox/Zika/Brazil/GitHub/Data/dat_Zika_salvador.RDS")
 cut1<-0.585592 #Cut-point determined using validation set
-db$pos_infect_38<-ifelse(db$avgzikvigg3_l38>cut1, 1, 0)
+db$pos_infect_38<-db$pos_igg3<-ifelse(db$avgzikvigg3_l38>cut1, 1, 0)
 db$coh_642<-ifelse(!is.na(db$denviggt_titers_l37_new), 1, 0)
 ```
 
@@ -101,9 +101,10 @@ Number of anti-ZIKV NS1 IgG3 positive samples in October 2015: `r length(which(d
 Attack rate adjusted for sensitivity and specificity: `r paste(round(mean(adj.rate), 2), " (95%CI ", paste(round(quantile(adj.rate, c(.025, .975)), 2), collapse="-"), ")", sep="") `
 
 ### Look at spatial heterogeneity in attack rates
+These variables not provided due to confidentiality concerns
 
 ## Look at associations between prior immunity to DENV and ZIKV seropositivity
-These analyses are performed on subset of 642 with data on DENV titers prior to Zika outbreak (variable coh642=1)
+These analyses are performed on subset of 642 with data on DENV titers prior to Zika outbreak (variable coh_642=1)
 
 ### Association among individuals with prior immunity to DENV
 ```{r associations_DENV_infect}
@@ -196,4 +197,3 @@ summary(m.denv_rash)
 ```
 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
