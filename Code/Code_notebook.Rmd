@@ -6,7 +6,7 @@ output:
   html_notebook: default
 ---
 
-This is file contains the code to reproduce the main results in the paper "Impact of preexisting dengue immunity on Zika virus emergence in a dengue endemic region"
+This is file contains the code to reproduce the main results in the paper "Impact of preexisting dengue immunity on Zika virus emergence in a dengue endemic region".
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,7 +15,7 @@ expit.fun<-function(x) {exp(x)/(1+exp(x))}
 
 ```{r load_data}
 #dataset
-db<-readRDS("Data/dat_Zika_salvador.RDS")
+db<-readRDS("../Data/dat_Zika_salvador.RDS")
 cut1<-0.585592 #Cut-point determined using validation set
 db$pos_infect_38<-db$pos_igg3<-ifelse(db$avgzikvigg3_l38>cut1, 1, 0)
 db$coh_642<-ifelse(!is.na(db$denviggt_titers_l37_new), 1, 0)
@@ -130,7 +130,14 @@ summary(mod.all_quants)
 1-exp(coef(mod.all_quants))
 1-exp(coef(mod.all_quants)+ 1.96*summary(mod.all_quants)$coefficients[,2] )
 1-exp(coef(mod.all_quants)- 1.96*summary(mod.all_quants)$coefficients[,2] )
-dim(mod.all_quants$model)
+
+### Same but with quasipoisson regression to get PRR instead of OR
+#mod.all_quants<-glm(pos_igg3~log(avgdenvigg3_l37, 2)+idade_l38+cut_denv_iggt_new, data=db, family=quasipoisson(link = "log"))
+#summary(mod.all_quants)
+#1-exp(coef(mod.all_quants))
+#1-exp(coef(mod.all_quants)+ 1.96*summary(mod.all_quants)$coefficients[,2] )
+#1-exp(coef(mod.all_quants)- 1.96*summary(mod.all_quants)$coefficients[,2] )
+#dim(mod.all_quants$model)
 ```
 
 ## Look at associations between prior immunity to DENV and ZIKV symptoms
